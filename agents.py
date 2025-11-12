@@ -1,3 +1,13 @@
+from PyPDF2 import PdfReader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores.faiss import FAISS
+from langchain_classic.chains.question_answering import load_qa_chain
+from langchain_core.messages import SystemMessage, BaseMessage, HumanMessage, AIMessage
+from langgraph.graph import StateGraph, START, END
+from pydantic import BaseModel
+from langchain_openai import ChatOpenAI
+
 def create_llm_msg(system_prompt,history):
     resp=[SystemMessage(content=system_prompt)]
     print(resp)
@@ -26,6 +36,7 @@ class ChatbotAgent():
     """A chatbot agent that interacts with users."""
 
     def __init__(self, api_key: str):
+        self.key = api_key
         self.model = ChatOpenAI(model_name="gpt-5-nano", max_tokens = 2000, openai_api_key=api_key)
         workflow = StateGraph(AgentState)
         workflow.add_node("classifier", self.classifier)
@@ -103,48 +114,44 @@ class ChatbotAgent():
         llm_messages = create_llm_msg(LAW_PROMPT, state.messages)
         return {"response": self.model.stream(llm_messages), "category": "LAW"}
     
-    def create_md_msg(self,system_prompt,history):
-        from PyPDF2 import PdfReader
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
-        from langchain_openai import OpenAIEmbeddings
-        from langchain_community.vectorstores.faiss import FAISS
-        from langchain_classic.chains.question_answering import load_qa_chain
-        reader = PdfReader("MSAR018 - MSAR Admission Policies and Information.pdf")
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text()
-            #print(text)
-        text_splitter = RecursiveCharacterTextSplitter(
-                separators="\n",
-                chunk_size=10000,
-                chunk_overlap=100,
-                length_function=len
-            )
-        chunks = text_splitter.split_text(text)
-        #print(chunks)
-        #print(chunks[0])
-        #generate embeddings
+def create_md_msg(self,system_prompt,history):
+    
+    reader = PdfReader("MSAR018 - MSAR Admission Policies and Information.pdf")
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+        #print(text)
+    text_splitter = RecursiveCharacterTextSplitter(
+            separators="\n",
+            chunk_size=10000,
+            chunk_overlap=100,
+            length_function=len
+        )
+    chunks = text_splitter.split_text(text)
+    #print(chunks)
+    #print(chunks[0])
+    #generate embeddings
 
-        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(api_key=self.key)
 
-        #creating a vector store
-        vector_store = FAISS.from_texts(chunks, embeddings)
+    #creating a vector store
+    vector_store = FAISS.from_texts(chunks, embeddings)
 
-        #user_question = input("Ask a question here:")
-        #if user_question:
-        #match = vector_store.similarity_search(user_question)
-        match = vector_store.similarity_search(system_prompt,k=3)  # Get top 3 matches
-        #for i, doc in enumerate(match):
-        #  print(f"Retrieved chunk {i}: {doc.page_content}")
+    #user_question = input("Ask a question here:")
+    #if user_question:
+    #match = vector_store.similarity_search(user_question)
+    match = vector_store.similarity_search(system_prompt,k=3)  # Get top 3 matches
+    #for i, doc in enumerate(match):
+    #  print(f"Retrieved chunk {i}: {doc.page_content}")
 
-        #print(match)
+    #print(match)
 
-        chain = load_qa_chain(self.model,chain_type="stuff")
+    chain = load_qa_chain(self.model,chain_type="stuff")
 
-        response = chain.invoke(input={"input_documents":match, "question":system_prompt})
-        #response = chain.invoke({"userquestion":"match"})
-        print(response['output_text'])
-        return response['output_text']
+    response = chain.invoke(input={"input_documents":match, "question":system_prompt})
+    #response = chain.invoke({"userquestion":"match"})
+    print(response['output_text'])
+    return response['output_text']
 
 def create_bs_msg(self,system_prompt,history):
   from langchain_community.document_loaders import CSVLoader
@@ -152,7 +159,10 @@ def create_bs_msg(self,system_prompt,history):
   from langchain_openai import OpenAIEmbeddings
   from langchain_community.vectorstores.faiss import FAISS
   from langchain_classic.chains.question_answering import load_qa_chain
-  reader = CSVLoader("/content/BSCollegeAdmission.csv")
+
+  my_data = system_prompt.split(',')
+  print(my_data)
+  reader = CSVLoader("/workspaces/CollegeChatGPT/datasets/BSCollegeAdmission.csv")
   text = ""
   documents = reader.load()
 
@@ -169,7 +179,7 @@ def create_bs_msg(self,system_prompt,history):
   #print(chunks[0])
   #generate embeddings
 
-  embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+  embeddings = OpenAIEmbeddings(openai_api_key=self.key)
 
   #creating a vector store
   vector_store = FAISS.from_texts(chunks, embeddings)
