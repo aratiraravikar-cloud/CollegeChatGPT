@@ -79,18 +79,20 @@ if st.button("Submit",type="primary"):
 
     final_state = app.graph.invoke({'messages': msg_list}, thread)
     full_resp = final_state['response']
+    print("full_resp----" + str(full_resp))
     #print(app.graph.stream({'messages': msg_list}, thread))
     for s in app.graph.stream({'messages': msg_list}, thread):
-    #print(s)
-        for k,v in s.items():
-            if resp_gen := v.get("response"):
-                print(f"Assistant: ")
-                print(resp_gen)
-                for chunk in resp_gen:
-                    text = getattr(chunk, "content", None) or getattr(chunk, "delta", None) # or str(chunk)
-                    if text:
-                        print(text, end="", flush=True)
-                        full_resp += text
+        print("response ===== " + str(s))
+        #full_resp += s
+        #for k,v in s.items():
+        #    if resp_gen := v.get("response"):
+        #        print(f"Assistant: ")
+        #        print(resp_gen)
+        #        for chunk in resp_gen:
+        #            text = getattr(chunk, "content", None) or getattr(chunk, "delta", None) # or str(chunk)
+        #            if text:
+        #                print(text, end="", flush=True)
+        #                full_resp += text
 
     if full_resp:
         msg_list.append({"role":"assistant","content":full_resp})

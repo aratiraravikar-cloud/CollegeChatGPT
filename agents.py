@@ -139,7 +139,7 @@ def create_md_msg(self,system_prompt,history):
     chain = load_qa_chain(self.model,chain_type="stuff")
 
     response = chain.invoke(input={"input_documents":match, "question":history[0].get('content')})
-    print(response['output_text'])
+    #print(response['output_text'])
     return response['output_text']
 
 def predict_admission(row, cr_score, math_score, writing_score):
