@@ -56,15 +56,20 @@ if admission_level == "***B.S.***":
     st.session_state.messages.append({"role": "user", "content": user_sat_writing})    
 elif admission_level == "***M.D.***":
     st.write("Congradulations on your PreMed undergraduation")
+    collegename = st.text_input("Enter your college name: ")
 else:
     st.write("Congradulations on your under graduation")
 
 if st.button("Submit",type="primary"):
     st.write("Button pressed")
-    st.write(user_sat_reading)
-    msg_list=[]
 
-    user_input="Give me the college list for BS with," + user_sat_reading + "," + user_sat_math + "," + user_sat_writing
+    if admission_level == "***B.S.***":
+        user_input="Give me the college list for BS with," + user_sat_reading + "," + user_sat_math + "," + user_sat_writing
+    elif admission_level == "***M.D.***":
+        user_input="Give me the admission process for MD," + collegename
+
+    msg_list=[]
+  
     print(user_input)
     msg_list.append({"role":"user","content":user_input})
     app=agents.ChatbotAgent(api_key=st.secrets["OpenAI_key"])

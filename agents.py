@@ -1,3 +1,4 @@
+from csv import reader
 from PyPDF2 import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
@@ -116,11 +117,10 @@ class ChatbotAgent():
     
 def create_md_msg(self,system_prompt,history):
     
-    reader = PdfReader("MSAR018 - MSAR Admission Policies and Information.pdf")
+    reader = PdfReader("/workspaces/CollegeChatGPT/datasets/MSAR018 - MSAR Admission Policies and Information.pdf")
     text = ""
     for page in reader.pages:
         text += page.extract_text()
-        #print(text)
     text_splitter = RecursiveCharacterTextSplitter(
             separators="\n",
             chunk_size=10000,
@@ -128,74 +128,57 @@ def create_md_msg(self,system_prompt,history):
             length_function=len
         )
     chunks = text_splitter.split_text(text)
-    #print(chunks)
-    #print(chunks[0])
-    #generate embeddings
 
     embeddings = OpenAIEmbeddings(api_key=self.key)
 
     #creating a vector store
     vector_store = FAISS.from_texts(chunks, embeddings)
 
-    #user_question = input("Ask a question here:")
-    #if user_question:
-    #match = vector_store.similarity_search(user_question)
-    match = vector_store.similarity_search(system_prompt,k=3)  # Get top 3 matches
-    #for i, doc in enumerate(match):
-    #  print(f"Retrieved chunk {i}: {doc.page_content}")
-
-    #print(match)
+    match = vector_store.similarity_search(history[0].get('content'),k=3)  # Get top 3 matches
 
     chain = load_qa_chain(self.model,chain_type="stuff")
 
-    response = chain.invoke(input={"input_documents":match, "question":system_prompt})
-    #response = chain.invoke({"userquestion":"match"})
+    response = chain.invoke(input={"input_documents":match, "question":history[0].get('content')})
     print(response['output_text'])
     return response['output_text']
 
+def predict_admission(row, cr_score, math_score, writing_score):
+    if (row['SAT Critical Reading 25th percentile score'] <= cr_score <= row['SAT Critical Reading 75th percentile score'] and
+        row['SAT Math 25th percentile score'] <= math_score <= row['SAT Math 75th percentile score'] and
+        row['SAT Writing 25th percentile score'] <= writing_score <= row['SAT Writing 75th percentile score']):
+        return 'Yes'
+    else:
+        return 'No'
+    
 def create_bs_msg(self,system_prompt,history):
-  from langchain_community.document_loaders import CSVLoader
   from langchain_text_splitters import RecursiveCharacterTextSplitter
   from langchain_openai import OpenAIEmbeddings
   from langchain_community.vectorstores.faiss import FAISS
   from langchain_classic.chains.question_answering import load_qa_chain
+  import pandas as pd
+  my_data = history[0].get('content').split(',')
+ 
+  df = pd.read_csv("/workspaces/CollegeChatGPT/datasets/BSCollegeAdmission.csv")
+  df = df[['Name', 'SAT Critical Reading 25th percentile score', 'SAT Critical Reading 75th percentile score',
+         'SAT Math 25th percentile score', 'SAT Math 75th percentile score',
+         'SAT Writing 25th percentile score', 'SAT Writing 75th percentile score',
+         'Percent admitted - total']]
+  
+  df['Predicted Admission'] = df.apply(predict_admission, 
+                                     cr_score=int(my_data[1]), 
+                                     math_score=int(my_data[2]), 
+                                     writing_score=int(my_data[3]), axis=1)
 
-  my_data = system_prompt.split(',')
-  print(my_data)
-  reader = CSVLoader("/workspaces/CollegeChatGPT/datasets/BSCollegeAdmission.csv")
-  text = ""
-  documents = reader.load()
+# Show the results for each university
 
-  for doc in documents:
-        text += doc.page_content + "\n"
-  text_splitter = RecursiveCharacterTextSplitter(
-          separators="\n",
-          chunk_size=1000,
-          chunk_overlap=100,
-          length_function=len
-      )
-  chunks = text_splitter.split_text(text)
-  #print(chunks)
-  #print(chunks[0])
-  #generate embeddings
+  print(df[['Name','Predicted Admission']])
 
-  embeddings = OpenAIEmbeddings(openai_api_key=self.key)
-
-  #creating a vector store
-  vector_store = FAISS.from_texts(chunks, embeddings)
-
-  #user_question = input("Ask a question here:")
-  #if user_question:
-  #match = vector_store.similarity_search(user_question)
-  match = vector_store.similarity_search(system_prompt,k=3)  # Get top 3 matches
-  #for i, doc in enumerate(match):
-  #  print(f"Retrieved chunk {i}: {doc.page_content}")
-
-  #print(match)
-
-  chain = load_qa_chain(self.model,chain_type="stuff")
-
-  response = chain.invoke(input={"input_documents":match, "question":system_prompt})
-  #response = chain.invoke({"userquestion":"match"})
-  print(response['output_text'])
-  return response['output_text']
+  
+  matching_universities = df[df['Predicted Admission'] == 'Yes']
+  print("You are eligible for admission to the following universities based on your SAT scores:")
+  print(matching_universities[['Name', 'SAT Critical Reading 25th percentile score', 'SAT Critical Reading 75th percentile score', 
+                             'SAT Math 25th percentile score', 'SAT Math 75th percentile score', 
+                             'SAT Writing 25th percentile score', 'SAT Writing 75th percentile score']])
+  response = matching_universities
+  #print(response['output_text'])
+  #return response['output_text']
