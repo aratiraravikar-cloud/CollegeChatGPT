@@ -10,27 +10,11 @@ st.write(
     ""
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-#openai_api_key = st.text_input("OpenAI API Key", type="password")
-#if not openai_api_key:
-#    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-#else:
-
-    # Create an OpenAI client.
-print(st.secrets["OpenAI_key"])
-#client = OpenAI(api_key=st.secrets["OpenAI_key"])
-
     # Create a session state variable to store the chat messages. This ensures that the
     # messages persist across reruns.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display the existing chat messages via `st.chat_message`.
-#for message in st.session_state.messages:
-#    with st.chat_message(message["role"]):
-#        st.markdown(message["content"])
 
 # Create a chat input field to allow the user to enter a message. This will display
 # automatically at the bottom of the page.
@@ -40,7 +24,7 @@ admission_level = st.radio(
     captions=[
         "Bachloer of Science",
         "Doctor of Medicine",
-        "Lawyer",
+        "Law School",
     ],
 )
 
@@ -61,12 +45,12 @@ else:
     st.write("Congradulations on your under graduation")
 
 if st.button("Submit",type="primary"):
-    st.write("Button pressed")
-
     if admission_level == "***B.S.***":
         user_input="Give me the college list for BS with," + user_sat_reading + "," + user_sat_math + "," + user_sat_writing
+        st.write("You are eligible for admission to the following universities based on your scores:")
     elif admission_level == "***M.D.***":
-        user_input="Give me the admission process for MD," + collegename
+        user_input="Give me the Admission Policies and Information for MD, " + collegename
+        st.write("Here is the information for Admission Policies for the selected college.")
 
     msg_list=[]
   
@@ -77,24 +61,24 @@ if st.button("Submit",type="primary"):
     thread={"configurable":{"thread_id":thread_id}}
     full_resp = ""
 
-    final_state = app.graph.invoke({'messages': msg_list}, thread)
-    full_resp = final_state['response']
-    print("full_resp----" + str(full_resp))
-    #print(app.graph.stream({'messages': msg_list}, thread))
+
     for s in app.graph.stream({'messages': msg_list}, thread):
         print("response ===== " + str(s))
-        #full_resp += s
-        #for k,v in s.items():
-        #    if resp_gen := v.get("response"):
-        #        print(f"Assistant: ")
-        #        print(resp_gen)
-        #        for chunk in resp_gen:
-        #            text = getattr(chunk, "content", None) or getattr(chunk, "delta", None) # or str(chunk)
-        #            if text:
-        #                print(text, end="", flush=True)
-        #                full_resp += text
+        
+        for key, value in s.items():
+            print(f"Key : {key}, value: {value}")
+            if resp_gen := value.get("response"):
+                print(f"Assistant: ")
+                #print(resp_gen[0])
+                for chunk in resp_gen:
+                    print(chunk)
+                    text = getattr(chunk, "content", None) or str(chunk) #or getattr(chunk, "delta", None) # or 
+                    if text:
+                        print(text, end="", flush=True)
+                        full_resp += text
 
     if full_resp:
         msg_list.append({"role":"assistant","content":full_resp})
         print("----------")
-        print(msg_list)
+        #print(msg_list)
+        st.write(full_resp)

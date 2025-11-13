@@ -71,7 +71,7 @@ class ChatbotAgent():
         - LAW
 
 
-        If you don't know the category, classify it as "smalltalk_agent".
+        If you don't know the category, classify it as "BS".
         """
         llm_messages = create_llm_msg(CLASSIFIER_PROMPT, state.messages)
         llm_response = self.model.with_structured_output(Category).invoke(llm_messages)
@@ -93,7 +93,6 @@ class ChatbotAgent():
         """
         rag_result = create_bs_msg(self,BS_PROMPT, state.messages)
         final_response_text = rag_result
-        #return {"response": self.model.stream(llm_messages), "category": "BS"}
         return {"response":self.model.stream(final_response_text), "category":"BS"}
 
     def MD(self, state: AgentState):
@@ -139,8 +138,9 @@ def create_md_msg(self,system_prompt,history):
     chain = load_qa_chain(self.model,chain_type="stuff")
 
     response = chain.invoke(input={"input_documents":match, "question":history[0].get('content')})
-    #print(response['output_text'])
+    print(response['output_text'])
     return response['output_text']
+    
 
 def predict_admission(row, cr_score, math_score, writing_score):
     if (row['SAT Critical Reading 25th percentile score'] <= cr_score <= row['SAT Critical Reading 75th percentile score'] and
@@ -156,6 +156,8 @@ def create_bs_msg(self,system_prompt,history):
   from langchain_community.vectorstores.faiss import FAISS
   from langchain_classic.chains.question_answering import load_qa_chain
   import pandas as pd
+  
+
   my_data = history[0].get('content').split(',')
  
   df = pd.read_csv("/workspaces/CollegeChatGPT/datasets/BSCollegeAdmission.csv")
@@ -171,14 +173,15 @@ def create_bs_msg(self,system_prompt,history):
 
 # Show the results for each university
 
-  print(df[['Name','Predicted Admission']])
+  #print(df[['Name','Predicted Admission']])
 
   
-  matching_universities = df[df['Predicted Admission'] == 'Yes']
-  print("You are eligible for admission to the following universities based on your SAT scores:")
-  print(matching_universities[['Name', 'SAT Critical Reading 25th percentile score', 'SAT Critical Reading 75th percentile score', 
-                             'SAT Math 25th percentile score', 'SAT Math 75th percentile score', 
-                             'SAT Writing 25th percentile score', 'SAT Writing 75th percentile score']])
-  response = matching_universities
-  #print(response['output_text'])
-  #return response['output_text']
+  matching_universities = df[df['Predicted Admission'] == 'Yes'].iloc[0:5]
+  
+  #print("You are eligible for admission to the following universities based on your SAT scores:")
+  
+  response = matching_universities[['Name','Percent admitted - total']]
+  
+  #print(response.to_string())
+  resp=[AIMessage(content=response.to_string())]
+  return resp
