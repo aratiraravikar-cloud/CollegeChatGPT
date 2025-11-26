@@ -22,7 +22,7 @@ admission_level = st.radio(
     "What kind of admission you are looking for?",
     ["***B.S.***", "***M.D.***", "***LAW***"],
     captions=[
-        "Bachloer of Science",
+        "Bachelor of Science",
         "Doctor of Medicine",
         "Law School",
     ],
@@ -53,14 +53,11 @@ if st.button("Submit",type="primary"):
         st.write("Here is the information for Admission Policies for the selected college.")
 
     msg_list=[]
-  
-    print(user_input)
     msg_list.append({"role":"user","content":user_input})
     app=agents.ChatbotAgent(api_key=st.secrets["OpenAI_key"])
     thread_id = 10
     thread={"configurable":{"thread_id":thread_id}}
     full_resp = ""
-
 
     for s in app.graph.stream({'messages': msg_list}, thread):
         print("response ===== " + str(s))
@@ -71,7 +68,7 @@ if st.button("Submit",type="primary"):
                 print(f"Assistant: ")
                 #print(resp_gen[0])
                 for chunk in resp_gen:
-                    print(chunk)
+                    #print(chunk)
                     text = getattr(chunk, "content", None) or str(chunk) #or getattr(chunk, "delta", None) # or 
                     if text:
                         print(text, end="", flush=True)
@@ -80,5 +77,5 @@ if st.button("Submit",type="primary"):
     if full_resp:
         msg_list.append({"role":"assistant","content":full_resp})
         print("----------")
-        #print(msg_list)
+        print(msg_list)
         st.write(full_resp)

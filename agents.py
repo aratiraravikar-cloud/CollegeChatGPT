@@ -44,18 +44,12 @@ class ChatbotAgent():
         workflow.add_node("BS", self.BS)
         workflow.add_node("MD", self.MD)
         workflow.add_node("LAW", self.LAW)
-        #workflow.add_node("feedback_agent", self.feedback_agent)
         workflow.add_edge(START, "classifier")
         workflow.add_conditional_edges("classifier", self.main_router)
-        #workflow.add_edge("classifier", "smalltalk_agent")
-        #workflow.add_edge("classifier", "complaint_agent")
-        #workflow.add_edge("classifier", "status_agent")
-        #workflow.add_edge("classifier", "feedback_agent")
         workflow.add_edge("BS", END)
         workflow.add_edge("MD", END)
         workflow.add_edge("LAW", END)
-        #workflow.add_edge("feedback_agent", END)
-
+      
         self.graph = workflow.compile()
 
 
@@ -80,9 +74,6 @@ class ChatbotAgent():
         return {"category":category}
 
     def main_router(self, state: AgentState):
-        #print("Routing to appropriate agent based on category")
-        #print(f"DEBUG: Current state: {state}")
-        #print(f"DEBUG: Current category: {state.category}")
         return state.category
 
     def BS(self, state: AgentState):
@@ -170,18 +161,9 @@ def create_bs_msg(self,system_prompt,history):
                                      cr_score=int(my_data[1]), 
                                      math_score=int(my_data[2]), 
                                      writing_score=int(my_data[3]), axis=1)
-
-# Show the results for each university
-
-  #print(df[['Name','Predicted Admission']])
-
   
   matching_universities = df[df['Predicted Admission'] == 'Yes'].iloc[0:5]
   
-  #print("You are eligible for admission to the following universities based on your SAT scores:")
-  
   response = matching_universities[['Name','Percent admitted - total']]
-  
-  #print(response.to_string())
   resp=[AIMessage(content=response.to_string())]
   return resp
